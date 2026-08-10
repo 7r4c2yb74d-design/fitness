@@ -1264,12 +1264,17 @@ async function renderHydrationGauge() {
   if (!el) return;
   const profile = await DB.getProfile();
   const total = (await DB.getHydrationHistory()).filter(h => h.date === todayISO()).reduce((s, h) => s + h.quantite, 0);
+  const atMax = total >= HYDRATION_GAUGE_MAX_ML;
   const pct = clamp(Math.round((total / HYDRATION_GAUGE_MAX_ML) * 100), 0, 100);
-  el.innerHTML = `<div class="bottle"><div class="bottle-fill" style="height:${pct}%"></div></div><div class="muted small">${(total/1000).toFixed(2)} L bus<br>objectif ${(profile.eauCible/1000).toFixed(2)} L · jauge max 4 L</div>`;
+  el.innerHTML = `<div class="bottle"><div class="bottle-fill" style="height:${pct}%"></div></div><div class="muted small">${(total/1000).toFixed(2)} L bus<br>objectif ${(profile.eauCible/1000).toFixed(2)} L · max 4 L${atMax ? ' · limite atteinte' : ''}</div>`;
+  document.querySelectorAll('[data-action="water-add"]').forEach(btn => { btn.disabled = atMax; });
 }
 
 App.waterAdd = async (amount) => {
-  await DB.saveHydration(Number(amount));
+  const total = (await DB.getHydrationHistory()).filter(h => h.date === todayISO()).reduce((s, h) => s + h.quantite, 0);
+  const remaining = HYDRATION_GAUGE_MAX_ML - total;
+  if (remaining <= 0) { toast('Limite de 4 L atteinte pour aujourd\'hui.'); return; }
+  await DB.saveHydration(Math.min(Number(amount), remaining));
   App.saved();
   renderHydrationGauge();
 };
