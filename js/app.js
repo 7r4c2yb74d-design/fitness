@@ -341,6 +341,8 @@ async function renderToday() {
     ${seance && seance.type === 'velo' ? renderCardioQuickForm('cycling', 'Vélo') : ''}
     ${seance && seance.type === 'course' ? renderCardioQuickForm('running', 'Course / marche') : ''}
 
+    ${hydrationBlockHtml()}
+
     <div class="card">
       <h3>Checklist du jour</h3>
       <div id="checklist-container">Chargement…</div>
@@ -365,6 +367,7 @@ async function renderToday() {
   `);
 
   renderChecklist(date);
+  renderHydrationGauge();
   if (timer && timer.running) startTimerTick();
 }
 
@@ -1209,14 +1212,7 @@ async function renderSettings() {
       </div>
     </div>
 
-    <div class="card">
-      <h3>Hydratation</h3>
-      <div class="hydration-row">
-        <button class="btn btn-secondary" data-action="water-add" data-amount="250">+250 ml</button>
-        <button class="btn btn-secondary" data-action="water-add" data-amount="500">+500 ml</button>
-        <div id="hydration-gauge"></div>
-      </div>
-    </div>
+    ${hydrationBlockHtml()}
 
     <div class="card">
       <h3>Sauvegarde des données</h3>
@@ -1249,13 +1245,27 @@ async function renderSettings() {
   renderHydrationGauge();
 }
 
+const HYDRATION_GAUGE_MAX_ML = 4000; // capacité maximale affichée par la jauge (4 L)
+
+function hydrationBlockHtml() {
+  return `
+    <div class="card">
+      <h3>Hydratation</h3>
+      <div class="hydration-row">
+        <button class="btn btn-secondary" data-action="water-add" data-amount="250">+250 ml</button>
+        <button class="btn btn-secondary" data-action="water-add" data-amount="500">+500 ml</button>
+        <div id="hydration-gauge"></div>
+      </div>
+    </div>`;
+}
+
 async function renderHydrationGauge() {
   const el = document.getElementById('hydration-gauge');
   if (!el) return;
   const profile = await DB.getProfile();
   const total = (await DB.getHydrationHistory()).filter(h => h.date === todayISO()).reduce((s, h) => s + h.quantite, 0);
-  const pct = clamp(Math.round((total / profile.eauCible) * 100), 0, 100);
-  el.innerHTML = `<div class="bottle"><div class="bottle-fill" style="height:${pct}%"></div></div><div class="muted small">${(total/1000).toFixed(2)} / ${(profile.eauCible/1000).toFixed(2)} L</div>`;
+  const pct = clamp(Math.round((total / HYDRATION_GAUGE_MAX_ML) * 100), 0, 100);
+  el.innerHTML = `<div class="bottle"><div class="bottle-fill" style="height:${pct}%"></div></div><div class="muted small">${(total/1000).toFixed(2)} L bus<br>objectif ${(profile.eauCible/1000).toFixed(2)} L · jauge max 4 L</div>`;
 }
 
 App.waterAdd = async (amount) => {
