@@ -1,10 +1,10 @@
 @echo off
-title Bedis Fitness - Serveur
+title FORGE - Serveur
 cd /d "%~dp0"
 
 echo.
 echo ============================================
-echo   BEDIS FITNESS - Ouverture sur telephone
+echo   FORGE - Ouverture sur telephone
 echo ============================================
 echo.
 

@@ -1222,7 +1222,7 @@ App.exportJson = async () => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const d = new Date().toISOString().slice(0, 10);
-  a.href = url; a.download = `bedis-fitness-backup-${d}.json`;
+  a.href = url; a.download = `forge-backup-${d}.json`;
   a.click();
   URL.revokeObjectURL(url);
   toast('Export JSON téléchargé');
