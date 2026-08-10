@@ -1147,6 +1147,7 @@ async function renderSettings() {
       <form data-form="settings">
         <div class="form-grid">
           <label>Nom<input type="text" name="nom" value="${escapeHtml(profile.nom)}"></label>
+          <label>Date de début<input type="date" name="dateDebut" value="${profile.dateDebut}"></label>
           <label>Taille (cm)<input type="number" name="taille" value="${profile.taille}"></label>
           <label>Poids actuel de référence (kg)<input type="number" step="0.1" name="poidsDepart" value="${profile.poidsDepart}"></label>
           <label>Objectif (kg)<input type="number" step="0.1" name="objectifPoids" value="${profile.objectifPoids}"></label>
@@ -1163,7 +1164,7 @@ async function renderSettings() {
         </fieldset>
         <button class="btn btn-primary" type="submit">Enregistrer les modifications</button>
       </form>
-      <p class="muted small">L'historique conserve toujours tes anciennes valeurs (poids de départ, objectifs...) même après une modification.</p>
+      <p class="muted small">L'historique conserve toujours tes anciennes valeurs (poids de départ, objectifs...) même après une modification. Change "Date de début" si tu commences aujourd'hui : ça fera automatiquement repartir le Programme et la Progression à la Semaine 1.</p>
     </div>
 
     <div class="card">
@@ -1308,7 +1309,13 @@ App.importFileReplace = () => {};
 App.resetData = () => {
   confirmDialog('Cette action va supprimer TOUTES tes données locales (poids, séances, nutrition, photos...). Es-tu sûr ?', async () => {
     const dbReq = indexedDB.deleteDatabase(DB_NAME);
-    dbReq.onsuccess = () => { localStorage.clear(); location.reload(); };
+    dbReq.onsuccess = () => {
+      localStorage.clear();
+      // Empêche la réinjection des données de démo après une remise à zéro
+      // volontaire : un vrai "reset" doit rester vide, pas se re-remplir.
+      localStorage.setItem('forge-skip-demo-seed', '1');
+      location.reload();
+    };
   });
 };
 
@@ -1378,12 +1385,12 @@ async function handleFormSubmit(form) {
   if (formType === 'settings') {
     const jours = fd.getAll('joursEntrainement');
     await DB.saveProfile({
-      nom: fd.get('nom'), taille: Number(fd.get('taille')), poidsDepart: Number(fd.get('poidsDepart')),
+      nom: fd.get('nom'), dateDebut: fd.get('dateDebut'), taille: Number(fd.get('taille')), poidsDepart: Number(fd.get('poidsDepart')),
       objectifPoids: Number(fd.get('objectifPoids')), caloriesCibles: Number(fd.get('caloriesCibles')),
       proteinesCibles: Number(fd.get('proteinesCibles')), eauCible: Number(fd.get('eauCible')),
       pasCible: Number(fd.get('pasCible')), joursEntrainement: jours
     });
-    App.saved(); return;
+    App.saved(); goTo('settings'); return;
   }
 }
 
@@ -1391,6 +1398,7 @@ async function handleFormSubmit(form) {
 // DONNÉES DE DÉMO (premier lancement uniquement)
 // ---------------------------------------------------------------
 async function seedDemoDataIfNeeded() {
+  if (localStorage.getItem('forge-skip-demo-seed')) return; // remise à zéro volontaire : rester vide
   const weights = await DB.getWeightHistory();
   if (weights.length > 0) return; // déjà des données réelles, on ne touche à rien
   const profile = await DB.getProfile();
