@@ -211,7 +211,7 @@ async function renderDashboard() {
 
     <div class="card">
       <h3>Évolution du poids</h3>
-      <canvas id="chart-dashboard-weight" height="90"></canvas>
+      <div class="chart-box chart-box-lg"><canvas id="chart-dashboard-weight"></canvas></div>
     </div>
   `);
 
@@ -647,7 +647,7 @@ function App_openExercise(id) {
 
       <h4>Historique des charges</h4>
       ${logs.length ? `
-        <canvas id="chart-exercise-history" height="120"></canvas>
+        <div class="chart-box"><canvas id="chart-exercise-history"></canvas></div>
         <table class="mini-table">
           <tr><th>Date</th><th>Charge</th><th>Séries×Reps</th></tr>
           ${logs.slice().reverse().map(l => `<tr><td>${formatDateFR(l.date)}</td><td>${l.charge} kg</td><td>${l.series}×${l.reps}</td></tr>`).join('')}
@@ -903,13 +903,13 @@ async function renderProgression() {
     </div>
 
     <div class="charts-grid">
-      <div class="card"><h4>Évolution du poids</h4><canvas id="chart-p-weight" height="150"></canvas></div>
-      <div class="card"><h4>Tour de taille</h4><canvas id="chart-p-waist" height="150"></canvas></div>
-      <div class="card"><h4>Calories / jour</h4><canvas id="chart-p-cal" height="150"></canvas></div>
-      <div class="card"><h4>Protéines / jour</h4><canvas id="chart-p-prot" height="150"></canvas></div>
-      <div class="card"><h4>Distance vélo</h4><canvas id="chart-p-velo" height="150"></canvas></div>
-      <div class="card"><h4>Distance course</h4><canvas id="chart-p-course" height="150"></canvas></div>
-      <div class="card"><h4>Sommeil</h4><canvas id="chart-p-sleep" height="150"></canvas></div>
+      <div class="card"><h4>Évolution du poids</h4><div class="chart-box"><canvas id="chart-p-weight"></canvas></div></div>
+      <div class="card"><h4>Tour de taille</h4><div class="chart-box"><canvas id="chart-p-waist"></canvas></div></div>
+      <div class="card"><h4>Calories / jour</h4><div class="chart-box"><canvas id="chart-p-cal"></canvas></div></div>
+      <div class="card"><h4>Protéines / jour</h4><div class="chart-box"><canvas id="chart-p-prot"></canvas></div></div>
+      <div class="card"><h4>Distance vélo</h4><div class="chart-box"><canvas id="chart-p-velo"></canvas></div></div>
+      <div class="card"><h4>Distance course</h4><div class="chart-box"><canvas id="chart-p-course"></canvas></div></div>
+      <div class="card"><h4>Sommeil</h4><div class="chart-box"><canvas id="chart-p-sleep"></canvas></div></div>
     </div>
   `);
 
