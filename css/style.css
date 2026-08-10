@@ -236,6 +236,10 @@ legend { padding: 0 6px; color: var(--text-muted); font-size: 0.8rem; }
 
 /* ---------------- Program page ---------------- */
 .week-selector { display: flex; gap: 8px; flex-wrap: wrap; }
+.week-nav { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.week-nav-label { text-align: center; min-width: 140px; }
+.week-nav-week { font-size: 1.15rem; font-weight: 800; }
+.btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 .program-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .day-card-header { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
 .day-card-title { font-size: 1.05rem; font-weight: 700; margin: 4px 0; }

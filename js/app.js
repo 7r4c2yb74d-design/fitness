@@ -512,18 +512,58 @@ App.finishSession = () => {
 };
 
 // ---------------------------------------------------------------
-// PAGE : PROGRAMME (4 semaines)
+// PAGE : PROGRAMME (navigation semaine par semaine / mois par mois)
 // ---------------------------------------------------------------
-let _programWeekPreview = null;
+
+// Semaine réelle depuis le début, SANS plafond à 4 (contrairement à
+// currentWeekNumber() qui sert à choisir le contenu du jour).
+async function realCurrentWeekNumber() {
+  const profile = await DB.getProfile();
+  const diff = daysBetween(profile.dateDebut, todayISO());
+  return Math.max(1, Math.floor(diff / 7) + 1);
+}
+
+// Estimation (non garantie) de la semaine absolue à laquelle l'objectif
+// de poids serait atteint, à partir de la tendance de perte actuelle.
+async function estimateGoalWeekAbs() {
+  const profile = await DB.getProfile();
+  const weights = await DB.getWeightHistory();
+  if (weights.length < 2) return null;
+  const poidsActuel = weights[weights.length - 1].weight;
+  const perteHebdo = ((weights[0].weight - poidsActuel) / Math.max(1, daysBetween(weights[0].date, todayISO()))) * 7;
+  if (perteHebdo <= 0.05) return null;
+  const kgRestants = Math.max(0, poidsActuel - profile.objectifPoids);
+  const nowWeek = await realCurrentWeekNumber();
+  return nowWeek + Math.ceil(kgRestants / perteHebdo);
+}
+
+let _programWeekAbs = null;
 async function renderProgram() {
-  if (!_programWeekPreview) _programWeekPreview = await currentWeekNumber();
-  const semaine = _programWeekPreview;
-  const week = APP_DATA.getSemaineComplete(semaine);
+  const nowWeekAbs = await realCurrentWeekNumber();
+  if (!_programWeekAbs) _programWeekAbs = nowWeekAbs;
+  const weekAbs = _programWeekAbs;
+  const pattern = clamp(weekAbs, 1, 4);
+  const week = APP_DATA.getSemaineComplete(pattern);
+  const monthNum = Math.ceil(weekAbs / 4);
+  const goalWeekAbs = await estimateGoalWeekAbs();
+  const isGoalWeek = goalWeekAbs && weekAbs === goalWeekAbs;
+  const maxWeek = goalWeekAbs ? goalWeekAbs + 8 : 26;
+
   setView(`
     <div class="card">
-      <div class="week-selector">
-        ${[1, 2, 3, 4].map(w => `<button class="btn btn-sm ${w === semaine ? 'btn-primary' : 'btn-ghost'}" data-action="program-week" data-week="${w}">Semaine ${w}</button>`).join('')}
+      <div class="week-nav">
+        <button class="btn btn-sm btn-ghost" data-action="program-week-delta" data-delta="-4" ${weekAbs <= 4 ? 'disabled' : ''}>◀◀ Mois</button>
+        <button class="btn btn-sm btn-ghost" data-action="program-week-delta" data-delta="-1" ${weekAbs <= 1 ? 'disabled' : ''}>◀ Semaine</button>
+        <div class="week-nav-label">
+          <div class="week-nav-week">Semaine ${weekAbs}${isGoalWeek ? ' 🎯' : ''}</div>
+          <div class="muted small">Mois ${monthNum}${isGoalWeek ? ' · objectif 80 kg estimé cette semaine-là' : ''}</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" data-action="program-week-delta" data-delta="1" ${weekAbs >= maxWeek ? 'disabled' : ''}>Semaine ▶</button>
+        <button class="btn btn-sm btn-ghost" data-action="program-week-delta" data-delta="4" ${weekAbs >= maxWeek ? 'disabled' : ''}>Mois ▶▶</button>
       </div>
+      <button class="btn btn-xs btn-secondary" data-action="program-week-today" style="margin-top:10px">Revenir à ma semaine actuelle (Semaine ${nowWeekAbs})</button>
+      ${weekAbs > 4 ? `<p class="muted small" style="margin-top:10px">À partir de la semaine 5, le contenu affiché reprend la Semaine 4 (rythme d'entretien) : la vraie progression vient des charges et des durées que tu enregistres à chaque séance, pas de nouveaux exercices chaque semaine.</p>` : ''}
+      ${goalWeekAbs ? `<p class="muted small">D'après ta tendance actuelle, il te reste environ <strong>${Math.max(0, goalWeekAbs - nowWeekAbs)} semaines</strong> pour atteindre 80 kg (estimation qui évolue avec ta progression réelle, pas une promesse).</p>` : '<p class="muted small">Enregistre quelques pesées pour voir apparaître ici une estimation du nombre de semaines restantes.</p>'}
     </div>
     <div class="program-grid">
       ${APP_DATA.JOURS_ORDRE.map(j => {
@@ -544,7 +584,14 @@ async function renderProgram() {
     </div>
   `);
 }
-App.programWeek = (w) => { _programWeekPreview = Number(w); renderProgram(); };
+App.programWeekDelta = (delta) => {
+  _programWeekAbs = clamp((_programWeekAbs || 1) + Number(delta), 1, 999);
+  renderProgram();
+};
+App.programWeekToday = async () => {
+  _programWeekAbs = await realCurrentWeekNumber();
+  renderProgram();
+};
 
 // ---------------------------------------------------------------
 // PAGE : MUSCULATION
@@ -1407,7 +1454,8 @@ document.addEventListener('click', async (e) => {
     case 'timer-reset': App.timerReset(); break;
     case 'finish-session': App.finishSession(); break;
     case 'open-exercise': App.openExercise(target.dataset.id); break;
-    case 'program-week': App.programWeek(target.dataset.week); break;
+    case 'program-week-delta': App.programWeekDelta(target.dataset.delta); break;
+    case 'program-week-today': App.programWeekToday(); break;
     case 'toggle-meal': break; // handled by change event
     case 'swap-food': App.openSwap(target.dataset.meal, Number(target.dataset.index)); break;
     case 'select-swap': App.selectSwap(target.dataset.meal, Number(target.dataset.index), Number(target.dataset.swap)); break;
